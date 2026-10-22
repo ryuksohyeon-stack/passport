@@ -13,6 +13,8 @@
 --------------------------------------------------------------- */
 .rpp{
   --w:100vw; --h:100vh;                     /* 스크립트가 블록의 실제 크기로 바꾼다 */
+  --pp-bg:#0e1013;                          /* 배경 — 스크립트가 주소의 ?bg= 에 맞춰 바꾼다 (아래 THEMES) */
+  --pp-ink:231 227 214;                     /* 쪽 번호 · COPY · 안내 글 색 (R G B) */
   --ease:cubic-bezier(.66,0,.28,1);
   --font-mono:"Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   position:relative;
@@ -21,7 +23,7 @@
   height:100vh;
   min-height:520px;
   overflow:hidden;isolation:isolate;
-  background:#0e1013;color:#e7e3d6;
+  background:var(--pp-bg);color:rgb(var(--pp-ink));
   -webkit-font-smoothing:antialiased;
   -webkit-text-size-adjust:100%;text-size-adjust:100%;
   touch-action:pan-y;text-align:left;line-height:1.2;
@@ -47,7 +49,7 @@
   --pp-h: min(calc(var(--h) * .6), calc(var(--w) * .38 * 1.408), 620px);   /* 펼친 여권 높이 */
   /* 장 한 장의 1% 높이 (cqh 대신 — 못 쓰는 브라우저가 있다) */
   --pq: calc(var(--pp-h) / 200);
-  position:absolute;inset:0;background:#0e1013;
+  position:absolute;inset:0;background:var(--pp-bg);
   display:flex;flex-direction:column;align-items:center;
   padding:clamp(60px, calc(var(--h) * .12), 120px) clamp(18px, calc(var(--w) * .05), 80px) clamp(28px, calc(var(--h) * .06), 56px);
   overflow-y:auto;overscroll-behavior:contain;
@@ -59,7 +61,7 @@
 .rpp .pp-book{position:relative;height:var(--pp-h);aspect-ratio:125 / 176;perspective:2400px;
   cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
 .rpp .pp-book.tilt{transform:rotate(-3.2deg)}             /* 여권 1 은 일부러 삐뚤게 */
-.rpp .pp-book:focus-visible{outline:1px dashed rgba(231,227,214,.5);outline-offset:10px}
+.rpp .pp-book:focus-visible{outline:1px dashed rgb(var(--pp-ink) / .5);outline-offset:10px}
 /* 겉표지. 뒤표지(아래 반)는 언제나 아래 장 밑에 있고, 앞표지(위 반)는 펼쳤을 때만
    위 장 뒤에 있다. 표지를 넘기는 동안에는 앞표지가 넘어가는 장(.pp-leaf.cov)에 붙어 함께 돈다 */
 .rpp .pp-book::before,.rpp .pp-fc,.rpp .pp-leaf.cov .pp-face.back::before{
@@ -166,16 +168,16 @@
 /* 아래 줄 — 쪽 번호 · 복사 */
 .rpp .pp-meta{width:calc(var(--pp-h) * .7102);margin-top:clamp(18px, calc(var(--h) * .03), 28px);
   display:flex;align-items:center;justify-content:space-between;gap:10px;
-  font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:rgba(231,227,214,.55)}
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:rgb(var(--pp-ink) / .55)}
 .rpp .pp-copy{display:inline-flex;align-items:center;gap:14px;padding:9px 14px;
-  border:1px solid rgba(231,227,214,.5);color:rgba(231,227,214,.9);font-family:var(--font-mono);
+  border:1px solid rgb(var(--pp-ink) / .5);color:rgb(var(--pp-ink) / .9);font-family:var(--font-mono);
   font-size:10px;letter-spacing:.16em;transition:background-color .3s var(--ease), color .3s var(--ease), opacity .3s ease}
-.rpp .pp-copy:hover:not(:disabled){background:rgba(231,227,214,.92);color:#151815}
+.rpp .pp-copy:hover:not(:disabled){background:rgb(var(--pp-ink) / .92);color:var(--pp-bg)}
 .rpp .pp-copy:disabled{opacity:.3;cursor:default}
 .rpp .pp-hint{margin-top:clamp(18px, calc(var(--h) * .035), 34px);text-align:center;
   font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;line-height:1.9;
-  color:rgba(231,227,214,.45);text-transform:uppercase}
-.rpp .pp-hint b{font-weight:400;color:rgba(231,227,214,.75)}
+  color:rgb(var(--pp-ink) / .45);text-transform:uppercase}
+.rpp .pp-hint b{font-weight:400;color:rgb(var(--pp-ink) / .75)}
 .rpp .pp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* 폰 — 세로로 나란히 */
@@ -259,6 +261,21 @@ var PASSPORTS = [
         bottom:"navy romantasy off-shoulder dress with gold decoration, simple earings, accessories" }
     ] }
 ];
+
+/* ---------------------------------------------------------------
+   배경 — luvlog 듀얼 테마의 모드마다 다르게. 액자 주소 끝의 ?bg=a / ?bg=b 로 고른다.
+     bg  : 배경색
+     ink : 쪽 번호 · COPY · 안내 글 색 — "R G B" 세 숫자 (어두운 배경엔 밝게, 밝은 배경엔 어둡게)
+--------------------------------------------------------------- */
+var THEMES = {
+  a: { bg:"#0e1013", ink:"231 227 214" },
+  b: { bg:"#E0E7F4", ink:"28 24 26" }
+};
+var themeKey = (/[?&]bg=([a-z0-9_-]+)/i.exec(location.search) || [])[1];
+var theme = THEMES[String(themeKey || 'a').toLowerCase()] || THEMES.a;
+root.style.setProperty('--pp-bg', theme.bg);
+root.style.setProperty('--pp-ink', theme.ink);
+document.documentElement.style.background = theme.bg;     /* 블록 밖 여백도 같은 색 */
 
 var q = function(sel){ return root.querySelector(sel); };
 var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
