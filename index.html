@@ -1,0 +1,453 @@
+<!doctype html><html><head><meta charset="utf-8"><title>PROMPT Passport</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0">
+<!-- PROMPT 여권 두 권 — GitHub Pages 에 올려서 luvlog 글에 액자(iframe)로 띄우는 페이지.
+     이 파일을 저장소에 index.html 로 올리세요.
+     넓은 화면에서는 두 권이 나란히, 좁은 화면(폰)에서는 세로로 쌓입니다. -->
+<div class="rpp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Serif:wght@700&family=PT+Mono&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<style>
+/* ---------------------------------------------------------------
+   여권 블록 — 모든 선택자는 .rpp 안으로 한정된다.
+   높이는 화면(100dvh)을 꽉 채우고, 여권이 넘치면 안에서 스크롤된다.
+--------------------------------------------------------------- */
+.rpp{
+  --w:100vw; --h:100vh;                     /* 스크립트가 블록의 실제 크기로 바꾼다 */
+  --ease:cubic-bezier(.66,0,.28,1);
+  --font-mono:"Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  position:relative;
+  display:block;width:100%;max-width:none;min-width:0;
+  flex:1 1 100%;align-self:stretch;justify-self:stretch;
+  height:100vh;
+  min-height:520px;
+  overflow:hidden;isolation:isolate;
+  background:#0e1013;color:#e7e3d6;
+  -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;
+  touch-action:pan-y;text-align:left;line-height:1.2;
+}
+@supports (height:100dvh){
+  .rpp{height:100dvh}   /* 지원 브라우저에서는 주소창 변화까지 반영 */
+}
+.rpp *{box-sizing:border-box;margin:0;padding:0}
+.rpp,.rpp *{-webkit-tap-highlight-color:transparent}
+/* 바깥 페이지가 p·span·button 같은 요소에 직접 건 글꼴·색·정렬을 되돌린다 */
+.rpp p,.rpp span,.rpp b,.rpp button{
+  font:inherit;color:inherit;letter-spacing:inherit;text-transform:inherit;
+  text-align:inherit;text-decoration:none;background:none;border:0;
+}
+.rpp button{cursor:pointer}
+
+/* ---------------------------------------------------------------
+   여권은 위아래로 펼친다(가운데 가로선이 제본). 아래 장을 누르면 위로 넘어가고,
+   위 장을 누르면 되돌아간다. 들어오면 표지가 위로 젖혀지며 열린다.
+--------------------------------------------------------------- */
+.rpp .pp{
+  --pp-gap: clamp(28px, calc(var(--w) * .05), 80px);
+  --pp-h: min(calc(var(--h) * .6), calc(var(--w) * .38 * 1.408), 620px);   /* 펼친 여권 높이 */
+  /* 장 한 장의 1% 높이 (cqh 대신 — 못 쓰는 브라우저가 있다) */
+  --pq: calc(var(--pp-h) / 200);
+  position:absolute;inset:0;background:#0e1013;
+  display:flex;flex-direction:column;align-items:center;
+  padding:clamp(60px, calc(var(--h) * .12), 120px) clamp(18px, calc(var(--w) * .05), 80px) clamp(28px, calc(var(--h) * .06), 56px);
+  overflow-y:auto;overscroll-behavior:contain;
+}
+.rpp .pp-row{display:flex;justify-content:center;align-items:flex-start;gap:var(--pp-gap)}
+.rpp .pp-col{display:flex;flex-direction:column;align-items:center;opacity:0;transform:translateY(18px)}
+.rpp.is-pp .pp-col{opacity:1;transform:none;transition:opacity .5s ease .1s, transform .6s var(--ease) .1s}
+.rpp.is-pp .pp-col + .pp-col{transition-delay:.22s}
+.rpp .pp-book{position:relative;height:var(--pp-h);aspect-ratio:125 / 176;perspective:2400px;
+  cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
+.rpp .pp-book.tilt{transform:rotate(-3.2deg)}             /* 여권 1 은 일부러 삐뚤게 */
+.rpp .pp-book:focus-visible{outline:1px dashed rgba(231,227,214,.5);outline-offset:10px}
+/* 겉표지. 뒤표지(아래 반)는 언제나 아래 장 밑에 있고, 앞표지(위 반)는 펼쳤을 때만
+   위 장 뒤에 있다. 표지를 넘기는 동안에는 앞표지가 넘어가는 장(.pp-leaf.cov)에 붙어 함께 돈다 */
+.rpp .pp-book::before,.rpp .pp-fc,.rpp .pp-leaf.cov .pp-face.back::before{
+  content:"";position:absolute;left:-2.8%;right:-2.8%;z-index:0;
+  background:radial-gradient(120% 80% at 30% 15%, #7b2433, #5a1520 55%, #470f19);
+  box-shadow:0 22px 50px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.3)}
+.rpp .pp-book::before{top:50%;bottom:-2.4%;border-radius:0 0 3.2% 3.2% / 0 0 4.6% 4.6%}
+.rpp .pp-fc{top:-2.4%;bottom:50%;border-radius:3.2% 3.2% 0 0 / 4.6% 4.6% 0 0;visibility:hidden}
+.rpp .pp-book.open .pp-fc{visibility:visible}
+.rpp .pp-leaf.cov .pp-face.back::before{top:-4.8%;bottom:0;z-index:-1;
+  border-radius:3.2% 3.2% 0 0 / 4.6% 4.6% 0 0;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}
+/* 제본선 그늘 */
+.rpp .pp-book::after{content:"";position:absolute;left:0;right:0;top:50%;height:7%;z-index:5;pointer-events:none;
+  transform:translateY(-50%);opacity:0;
+  background:linear-gradient(180deg, transparent, rgba(60,20,30,.16) 40%, rgba(40,10,20,.32) 50%, rgba(60,20,30,.16) 60%, transparent)}
+.rpp .pp-book.open::after{opacity:1}
+.rpp .pp-book.opening::after{opacity:1;transition:opacity .32s ease .4s}
+.rpp .pp-half{position:absolute;left:0;right:0;height:50%;z-index:1}
+.rpp .pp-half.top{top:0}
+.rpp .pp-half.bot{bottom:0}
+.rpp .pp-leaf{position:absolute;left:0;right:0;top:50%;height:50%;z-index:3;visibility:hidden;
+  transform-origin:50% 0;transform-style:preserve-3d}
+.rpp .pp-leaf.on{visibility:visible}
+.rpp .pp-face{position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.rpp .pp-face.back{transform:rotateX(180deg)}
+.rpp .pp-face > .pp-p{z-index:1}
+
+/* ── 장 한 장 ── */
+.rpp .pp-p{position:absolute;inset:0;overflow:hidden;
+  font-family:"PT Sans Narrow","Arial Narrow",Arial,sans-serif;color:#2b2126;
+  background:
+    repeating-radial-gradient(circle at 18% 118%, rgba(176,96,122,.10) 0 .6px, transparent .9px 6px),
+    repeating-radial-gradient(circle at 86% -24%, rgba(96,128,170,.10) 0 .6px, transparent .9px 7px),
+    repeating-linear-gradient(118deg, rgba(186,140,156,.07) 0 1px, transparent 1px 5px),
+    linear-gradient(180deg, #f7eef0, #efe3e8)}
+.rpp .pp-p.up{border-radius:2.2% 2.2% 0 0 / 3.2% 3.2% 0 0}
+.rpp .pp-p.dn{border-radius:0 0 2.2% 2.2% / 0 0 3.2% 3.2%;
+  box-shadow:0 1px 0 #e3d6db, 0 2px 0 #d2c3c9, 0 3px 0 #bfaeb5}      /* 아래로 쌓인 장들 */
+/* 가운데 둥근 무늬(로제트) */
+.rpp .pp-p::before{content:"";position:absolute;left:50%;top:52%;width:calc(var(--pq) * 62);height:calc(var(--pq) * 62);border-radius:50%;
+  transform:translate(-50%,-50%);pointer-events:none;
+  background:repeating-conic-gradient(rgba(170,98,124,.10) 0 1.6deg, transparent 1.6deg 5deg);
+  -webkit-mask:radial-gradient(circle, #000 30%, transparent 31%, transparent 38%, #000 39%, #000 64%, transparent 70%);
+  mask:radial-gradient(circle, #000 30%, transparent 31%, transparent 38%, #000 39%, #000 64%, transparent 70%)}
+.rpp .pp-in{position:absolute;inset:0}
+.rpp .pp-micro{position:absolute;left:6%;right:6%;top:5%;text-align:center;font-size:calc(var(--pq) * 3.4);
+  letter-spacing:.32em;color:rgba(140,60,80,.55)}
+.rpp .pp-pg{position:absolute;bottom:4%;font-size:calc(var(--pq) * 3.6);color:rgba(80,50,60,.55)}
+.rpp .pp-p.up .pp-pg{bottom:auto;top:4%}
+.rpp .pp-pg.l{left:4%}
+.rpp .pp-pg.r{right:4%}
+.rpp .pp-lab{display:block;font-size:calc(var(--pq) * 3.3);line-height:1.1;color:rgba(70,45,55,.78);letter-spacing:.02em}
+.rpp .pp-val{display:block;font-weight:700;font-size:calc(var(--pq) * 5.4);line-height:1.08;letter-spacing:.04em;color:#1c1519;
+  text-transform:uppercase;white-space:pre-line}
+
+/* 겉표지 */
+.rpp .pp-p.cover{background:
+    radial-gradient(160% 110% at 28% 12%, rgba(255,255,255,.07), transparent 55%),
+    repeating-radial-gradient(circle at 40% 60%, rgba(0,0,0,.05) 0 .5px, transparent .8px 2.4px),
+    linear-gradient(160deg, #7b2433, #5a1520 60%, #470f19);
+  color:#d8b56a;inset:0 -2.8% -4.8% -2.8%;border-radius:1.4% 1.4% 3.2% 3.2% / 2% 2% 4.6% 4.6%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.28), 0 18px 40px rgba(0,0,0,.5)}
+.rpp .pp-p.cover::before{content:none}
+.rpp .pp-p.cover .pp-in{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--pq) * 5)}
+.rpp .pp-p.cover b{font-family:"PT Serif",Georgia,serif;font-weight:700;letter-spacing:.2em;
+  text-shadow:0 1px 0 rgba(0,0,0,.45), 0 -1px 0 rgba(255,230,170,.18)}
+.rpp .pp-p.cover .c1{font-size:calc(var(--pq) * 6.4)}
+.rpp .pp-p.cover .c2{font-size:calc(var(--pq) * 9.6);letter-spacing:.32em}
+.rpp .pp-p.cover svg{width:calc(var(--pq) * 26);height:calc(var(--pq) * 26);filter:drop-shadow(0 1px 0 rgba(0,0,0,.4))}
+
+/* 2쪽 */
+.rpp .pp-p.issue .pp-in{padding:calc(var(--pq) * 13) 10% calc(var(--pq) * 8) 8%}
+.rpp .pp-issue-grid{display:grid;grid-template-columns:auto 1fr;column-gap:5%;row-gap:calc(var(--pq) * 4.6);align-items:end}
+.rpp .pp-issue-grid .wide{grid-column:1 / -1}
+.rpp .pp-sign{height:calc(var(--pq) * 13);width:calc(var(--pq) * 40);margin-top:calc(var(--pq) * 1)}
+.rpp .pp-sign path{fill:none;stroke:#1f2a55;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* 3쪽 — 사진 칸과 인적 사항 */
+.rpp .pp-p.data .pp-in{padding:calc(var(--pq) * 12) 9% 0 6%;display:grid;grid-template-columns:30% 1fr;column-gap:6%;
+  align-items:start}
+.rpp .pp-photo{position:relative;height:calc(var(--pq) * 62);margin-top:calc(var(--pq) * 2);overflow:hidden}
+/* 빈 사진 칸 — photo 를 넣으면 이 자리에 사진이 들어간다 */
+.rpp .pp-photo.empty{background:rgba(255,255,255,.38);box-shadow:inset 0 0 0 1px rgba(80,50,60,.22)}
+.rpp .pp-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  filter:grayscale(1) contrast(1.04)}                    /* 흑백으로 — 컬러로 두려면 이 줄을 지우세요 */
+.rpp .pp-fields{display:grid;grid-template-columns:1fr 1fr;column-gap:6%;row-gap:calc(var(--pq) * 3.2);align-content:start}
+.rpp .pp-fields .wide{grid-column:1 / -1}
+
+/* 4쪽부터 — 기본 장에 프롬프트 */
+.rpp .pp-p.note .pp-in{padding:calc(var(--pq) * 11) 10% calc(var(--pq) * 9) 8%}
+.rpp .pp-text{height:100%;overflow-y:auto;overscroll-behavior:contain;
+  font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  font-size:calc(var(--pq) * 4.9);line-height:1.55;letter-spacing:-.005em;
+  color:#1f2744;white-space:pre-wrap;word-break:break-word;cursor:text;
+  -webkit-user-select:text;user-select:text}
+.rpp .pp-text:empty::before{content:"—";color:rgba(31,39,68,.35)}
+/* 제목 — 위 장 머리에. 복사에는 들어가지 않는다 */
+.rpp .pp-p.note .pp-in{display:flex;flex-direction:column}
+.rpp .pp-title{flex:0 0 auto;margin-bottom:calc(var(--pq) * 3.5);font-family:"PT Sans Narrow","Arial Narrow",Arial,sans-serif;
+  font-weight:700;font-size:calc(var(--pq) * 5.6);letter-spacing:.14em;color:#8a2b3a;text-transform:uppercase;
+  -webkit-user-select:none;user-select:none}
+.rpp .pp-p.note .pp-text{flex:1 1 auto;min-height:0}
+
+/* 아래 줄 — 쪽 번호 · 복사 */
+.rpp .pp-meta{width:calc(var(--pp-h) * .7102);margin-top:clamp(18px, calc(var(--h) * .03), 28px);
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;color:rgba(231,227,214,.55)}
+.rpp .pp-copy{display:inline-flex;align-items:center;gap:14px;padding:9px 14px;
+  border:1px solid rgba(231,227,214,.5);color:rgba(231,227,214,.9);font-family:var(--font-mono);
+  font-size:10px;letter-spacing:.16em;transition:background-color .3s var(--ease), color .3s var(--ease), opacity .3s ease}
+.rpp .pp-copy:hover:not(:disabled){background:rgba(231,227,214,.92);color:#151815}
+.rpp .pp-copy:disabled{opacity:.3;cursor:default}
+.rpp .pp-hint{margin-top:clamp(18px, calc(var(--h) * .035), 34px);text-align:center;
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.14em;line-height:1.9;
+  color:rgba(231,227,214,.45);text-transform:uppercase}
+.rpp .pp-hint b{font-weight:400;color:rgba(231,227,214,.75)}
+.rpp .pp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* 폰 — 세로로 나란히 */
+.rpp.is-narrow .pp{--pp-h: min(calc(var(--w) * .8 * 1.408), calc(var(--h) * .72));
+  padding-top:clamp(56px, calc(var(--h) * .1), 90px)}
+.rpp.is-narrow .pp-row{flex-direction:column;align-items:center;gap:clamp(34px, calc(var(--h) * .06), 56px)}
+.rpp.is-narrow .pp-hint{margin-top:26px}
+
+@media (prefers-reduced-motion:reduce){
+  .rpp *{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}
+</style>
+
+<div class="pp">
+  <div class="pp-row">
+    <div class="pp-col">
+      <div class="pp-book tilt" tabindex="0" role="button" aria-label="여권 1 — 아래를 누르면 다음 장, 위를 누르면 앞 장"></div>
+      <div class="pp-meta"><span class="pp-no">00 / 04</span><button class="pp-copy" disabled>COPY <span>⧉</span></button></div>
+      <span class="pp-sr" aria-live="polite"></span>
+    </div>
+    <div class="pp-col">
+      <div class="pp-book" tabindex="0" role="button" aria-label="여권 2 — 아래를 누르면 다음 장, 위를 누르면 앞 장"></div>
+      <div class="pp-meta"><span class="pp-no">00 / 04</span><button class="pp-copy" disabled>COPY <span>⧉</span></button></div>
+      <span class="pp-sr" aria-live="polite"></span>
+    </div>
+  </div>
+  <p class="pp-hint"><b>아래 장</b>을 누르면 다음 장으로, <b>위 장</b>을 누르면 앞 장으로 넘어가요<br>click the lower page to turn · the upper page to go back</p>
+</div>
+
+<script>
+(function boot(tries){
+"use strict";
+
+/* 이 스크립트가 들어 있는 .rpp 블록을 찾는다.
+   사이트가 스크립트를 따로 실행하면 currentScript 가 비어 있다 — 그때는 아직 안 켜진 .rpp 를 찾는다.
+   스크립트가 블록보다 먼저 실행되면 블록이 생길 때까지 잠깐씩 다시 찾는다 */
+var root = document.currentScript && document.currentScript.parentNode;
+while (root && !(root.classList && root.classList.contains('rpp'))) root = root.parentNode;
+if (!root){
+  var all = document.querySelectorAll('.rpp');
+  for (var ri = all.length - 1; ri >= 0; ri--) if (!all[ri].__rppOn){ root = all[ri]; break; }
+}
+if (!root){
+  if (tries < 60) setTimeout(function(){ boot(tries + 1); }, 50);
+  return;
+}
+if (root.__rppOn) return;              /* 두 번 돌아도 한 번만 켠다 */
+root.__rppOn = true;
+
+/* ---------------------------------------------------------------
+   여권 두 권. ▼ 여기만 고치면 됩니다.
+     photo   : 사진 주소. 비워 두면 빈 칸으로 남는다.
+               예) photo:"https://주소/milan.jpg"  (따옴표와 끝의 쉼표는 지우지 마세요)
+     prompts : 4쪽부터 넘기는 장. { title:"제목", top:"위 장", bottom:"아래 장" } 하나가 한 번 펼친 면.
+               COPY 는 그 면의 위 + 아래 글만 한 번에 복사한다 (제목은 복사하지 않는다).
+               늘리면 장도 늘어난다
+--------------------------------------------------------------- */
+var PASSPORTS = [
+  { surname:"Василц", name:"МИЛАН", patronymic:"Евгеньевич", sex:"МУЖ",
+    birth:"01.02.1999", place:"Россия, Соколиная Гора, \nМосква-Сити",
+    issuedBy:"Отдел по вопросам миграции \nМинистерства внутренних дел ", issued:"21.11.2019", code:"208-195",
+    photo:"",
+    prompts:[
+      { title:"PROMPT Basics", top:"boy, 21age, 1.1::mature handsome male, dominant::, slender toned male, broad shoulders, v-taper, 0.7::freckles::, asymmetrical bangs, lifted bangs, forehead, 2::dark roots::, 2::short light brown hair::, messy hair, 2::blue gray eyes, subtle bags under eyes::, 1.3::thick black eyebrows::, V-shaped eyebrows, upturned eyes, -2::forked eyebrows::,",
+        bottom:"layered clothes, gray hoodie shirt, hoodie down, black training jacket, Adidas jacket, chain" },
+      { title:"PROMPT Outside", top:"boy, 21age, 1.1::mature handsome male, dominant::, slender toned male, broad shoulders, v-taper, 0.7::freckles::, asymmetrical bangs, lifted bangs, forehead, 2::dark roots::, 2::short light brown hair::, messy hair, 2::blue gray eyes, subtle bags under eyes::, 1.3::thick black eyebrows::, V-shaped eyebrows, upturned eyes, -2::forked eyebrows::,",
+        bottom:"zipped black down jacket, scarf, hoodie up" },
+      { title:"PROMPT Rofan", top:"boy, 21age, 1.1::mature handsome male, dominant::, slender toned male, broad shoulders, v-taper, 0.7::freckles::, asymmetrical bangs, lifted bangs, forehead, 2::dark roots::, 2::short light brown hair::, messy hair, 2::blue gray eyes, subtle bags under eyes::, 1.3::thick black eyebrows::, V-shaped eyebrows, upturned eyes, -2::forked eyebrows::,",
+        bottom:"black suit jacket, gray suit vest with gold button, white shirt, kravatt with red brooch, Romantasy mood" }
+    ] },
+  { surname:"Постник", name:"РИКА", patronymic:"Кусгучевна", sex:"ЖЕН",
+    birth:"16.08.1995", place:"Район Кайеркан \nЛенинский проспект",
+    issuedBy:"ОВМ ОМВД России, \nпо г. Норильску", issued:"22.02.2015", code:"240-017",
+    photo:"",
+    prompts:[
+      { title:"PROMPT Basics", top:"girl, 25age, beautiful, slender, medium breasts::, pale skin, 3::crimson hair, long parted wavy hair, parted choppy bangs::, 2::white eyes, half-closed tsurime white eyes::, cozy mood::, expressionless::,",
+        bottom:"Grainy flash photo, deep crimson, harsh shadows, 2000s point-and-shoot look." },
+      { title:"PROMPT Outside", top:"girl, 25age, beautiful, slender, medium breasts::, pale skin, 3::crimson hair, long parted wavy hair, parted choppy bangs::, 2::white eyes, half-closed tsurime white eyes::, cozy mood::, expressionless::,",
+        bottom:"zipped white down jacket, scarf, hoodie up" },
+      { title:"PROMPT Rofan", top:"girl, 25age, beautiful, slender, medium breasts::, pale skin, 3::crimson hair, long parted wavy hair, parted choppy bangs::, 2::white eyes, half-closed tsurime white eyes::, cozy mood::, expressionless::,",
+        bottom:"navy romantasy off-shoulder dress with gold decoration, simple earings, accessories" }
+    ] }
+];
+
+var q = function(sel){ return root.querySelector(sel); };
+var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+var ppView = q('.pp');
+var PP_TURN = 720;
+
+function esc(t){ return String(t == null ? '' : t).replace(/[&<>"]/g, function(c){
+  return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+
+/* 표지 엠블럼 — 노릴스크의 눈송이 */
+var PP_EMBLEM = (function(){
+  var arm = '<path d="M50 50V11M50 24l-9-8M50 24l9-8M50 36l-7-6M50 36l7-6"/>', s = '', a;
+  for (a = 0; a < 360; a += 60) s += '<g transform="rotate(' + a + ' 50 50)">' + arm + '</g>';
+  return '<svg viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round">' +
+    s + '<circle cx="50" cy="50" r="7"/></g></svg>';
+})();
+var PP_SIGN = '<svg class="pp-sign" viewBox="0 0 120 36" aria-hidden="true"><path d="M4 24c6-14 12-18 14-12s-6 16-2 14 10-20 16-18-4 18 2 16 8-12 12-12 0 10 4 9 8-8 14-8 4 6 8 5 10-6 16-6 6 4 12 3"/></svg>';
+
+function ppPage(kind, pos, pg, inner){
+  return '<div class="pp-p ' + kind + ' ' + pos + '"><div class="pp-in">' + (inner || '') + '</div>' +
+    (kind === 'cover' ? '' : '<span class="pp-pg ' + (pg % 2 ? 'r' : 'l') + '">' + pg + '</span>') + '</div>';
+}
+function ppField(label, value, cls){
+  return '<div' + (cls ? ' class="' + cls + '"' : '') + '><span class="pp-lab">' + label + '</span>' +
+         '<span class="pp-val">' + esc(value) + '</span></div>';
+}
+/* 여권 한 권의 장들: [겉표지, 2쪽, 3쪽, 4쪽, 5쪽 …] */
+function ppPages(p){
+  var out = [];
+  out.push(ppPage('cover', 'dn', 0,
+    '<b class="c1">ПАСПОРТ ПЕРСОНАЖА</b>' + PP_EMBLEM + '<b class="c2">' + esc(p.name) + '</b>'));
+  out.push(ppPage('issue', 'up', 2,
+    '<span class="pp-micro">ПАСПОРТ ПЕРСОНАЖА</span>' +
+    '<div class="pp-issue-grid">' +
+      ppField('Паспорт выдан', p.issuedBy, 'wide') +
+      ppField('Дата выдачи', p.issued) + ppField('Код подразделения', p.code) +
+      '<div class="wide"><span class="pp-lab">Личная подпись</span>' + PP_SIGN + '</div>' +
+    '</div>'));
+  out.push(ppPage('data', 'dn', 3,
+    (p.photo ? '<div class="pp-photo"><img src="' + esc(p.photo) + '" alt=""></div>' : '<div class="pp-photo empty"></div>') +
+    '<div class="pp-fields">' +
+      ppField('Фамилия', p.surname, 'wide') + ppField('Имя', p.name, 'wide') +
+      ppField('Отчество', p.patronymic, 'wide') +
+      ppField('Пол', p.sex) + ppField('Дата рождения', p.birth) +
+      ppField('Место рождения', p.place, 'wide') +
+    '</div>'));
+  (p.prompts || []).forEach(function(s, i){
+    out.push(ppPage('note', 'up', 4 + i * 2,
+      (s.title ? '<b class="pp-title">' + esc(s.title) + '</b>' : '') + '<div class="pp-text">' + esc(s.top) + '</div>'));
+    out.push(ppPage('note', 'dn', 5 + i * 2, '<div class="pp-text">' + esc(s.bottom) + '</div>'));
+  });
+  return out;
+}
+
+/* 한 권의 상태. k = 펼친 면 (0 = 덮임, 1 = 사진 면, 2 부터 프롬프트) */
+var ppBooks = [];
+function ppBuild(){
+  ppBooks = [];
+  var cols = ppView.querySelectorAll('.pp-col');
+  for (var i = 0; i < cols.length && i < PASSPORTS.length; i++){
+    var col = cols[i], book = col.querySelector('.pp-book');
+    book.innerHTML =
+      '<div class="pp-fc"></div>' +
+      '<div class="pp-half top"></div><div class="pp-half bot"></div>' +
+      '<div class="pp-leaf"><div class="pp-face front"></div><div class="pp-face back"></div></div>';
+    var b = { i:i, p:PASSPORTS[i], pages:ppPages(PASSPORTS[i]), k:0, busy:false, col:col, book:book,
+              top:book.querySelector('.pp-half.top'), bot:book.querySelector('.pp-half.bot'),
+              leaf:book.querySelector('.pp-leaf'), front:book.querySelector('.pp-face.front'),
+              back:book.querySelector('.pp-face.back'), no:col.querySelector('.pp-no'),
+              copy:col.querySelector('.pp-copy'), sr:col.querySelector('.pp-sr') };
+    b.n = Math.floor((b.pages.length - 1) / 2);          /* 펼칠 수 있는 면 수 */
+    ppWire(b);
+    ppBooks.push(b);
+  }
+}
+function ppTop(b, k){ return k > 0 ? b.pages[2 * k - 1] : ''; }
+function ppBot(b, k){ return b.pages[2 * k] || ''; }
+function ppMeta(b){
+  b.no.textContent = (b.k ? ('0' + b.k).slice(-2) : '00') + ' / ' + ('0' + b.n).slice(-2);
+  var s = b.k >= 2 ? b.p.prompts[b.k - 2] : null;
+  b.copy.disabled = !(s && (s.top || s.bottom));
+  b.sr.textContent = s ? [s.top, s.bottom].filter(Boolean).join('\n') : '';
+}
+function ppShow(b, k){
+  b.k = k;
+  b.top.innerHTML = ppTop(b, k);
+  b.bot.innerHTML = ppBot(b, k);
+  b.leaf.classList.remove('on', 'cov');
+  b.book.classList.toggle('open', k > 0);
+  b.book.classList.remove('opening');
+  ppMeta(b);
+}
+function ppTurn(b, dir){
+  if (b.busy) return;
+  var k = b.k, to = k + dir;
+  if (to < 0 || to > b.n) return;
+  if (reduce || typeof b.leaf.animate !== 'function'){ ppShow(b, to); return; }
+  b.busy = true;
+  var fwd = dir > 0;
+  var cov = fwd ? k === 0 : to === 0;       /* 겉표지를 넘기는 중 — 앞표지가 장에 붙어 돈다 */
+  b.leaf.classList.toggle('cov', cov);
+  if (cov && fwd) b.book.classList.add('opening');
+  if (cov && !fwd) b.book.classList.remove('open');
+  /* 넘기는 장 : 앞면 = 아래 장, 뒷면 = 다음 면의 위 장 */
+  b.front.innerHTML = ppBot(b, fwd ? k : to);
+  b.back.innerHTML  = ppTop(b, fwd ? to : k);
+  if (fwd) b.bot.innerHTML = ppBot(b, to);
+  else     b.top.innerHTML = ppTop(b, to);
+  b.leaf.style.transform = fwd ? 'rotateX(0deg)' : 'rotateX(180deg)';
+  b.leaf.classList.add('on');
+  var a = b.leaf.animate(
+    [{ transform: fwd ? 'rotateX(0deg)' : 'rotateX(180deg)' },
+     { transform: fwd ? 'rotateX(180deg)' : 'rotateX(0deg)' }],
+    { duration:PP_TURN, easing:'cubic-bezier(.45,.05,.25,1)' });
+  var done = false;
+  function end(){
+    if (done) return; done = true;
+    b.busy = false;
+    ppShow(b, to);
+  }
+  a.onfinish = end; a.oncancel = end;
+  setTimeout(end, PP_TURN + 200);
+}
+function ppCopy(b){
+  var s = b.k >= 2 ? b.p.prompts[b.k - 2] : null;
+  if (!s) return;
+  var text = [s.top, s.bottom].filter(Boolean).join('\n');
+  var btn = b.copy, label = btn.innerHTML;
+  function say(t){ btn.innerHTML = t; clearTimeout(btn._t); btn._t = setTimeout(function(){ btn.innerHTML = label; }, 1500); }
+  function old(){
+    /* 사이트가 클립보드 권한을 안 준 경우(다른 출처 iframe) — 예전 방식으로 */
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:absolute;left:-9999px;top:0;opacity:0';
+    root.appendChild(ta); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e){}
+    root.removeChild(ta);
+    if (ok) say('COPIED <span>✓</span>');
+    else {                                    /* 그래도 안 되면 글을 골라 두어 Ctrl+C 로 */
+      var r = document.createRange(); r.selectNodeContents(b.sr);
+      var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      say('CTRL+C <span>⧉</span>');
+    }
+  }
+  try {
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(function(){ say('COPIED <span>✓</span>'); }, old);
+    else old();
+  } catch (e){ old(); }
+}
+function ppWire(b){
+  b.book.addEventListener('click', function(e){
+    if (b.k === 0) return ppTurn(b, 1);
+    if (e.target.closest && e.target.closest('.pp-text') && getSelection && String(getSelection())) return;  /* 글을 고르는 중 */
+    var r = b.book.getBoundingClientRect();
+    ppTurn(b, e.clientY < r.top + r.height / 2 ? -1 : 1);
+  });
+  b.book.addEventListener('keydown', function(e){
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.stopPropagation(); ppTurn(b, 1); }
+    else if (e.key === 'ArrowUp'){ e.preventDefault(); e.stopPropagation(); ppTurn(b, -1); }
+  });
+  b.copy.addEventListener('click', function(){ ppCopy(b); });
+}
+function openPP(){
+  ppBuild();
+  ppBooks.forEach(function(b){ ppShow(b, 0); });
+  root.classList.add('is-pp');
+  ppView.scrollTop = 0;
+  /* 들어오면 표지가 위로 젖혀지며 열린다 */
+  ppBooks.forEach(function(b, i){
+    setTimeout(function(){ if (b.k === 0) ppTurn(b, 1); }, reduce ? 0 : 620 + i * 220);
+  });
+}
+
+/* 블록의 실제 크기를 재서 CSS 에 넘긴다 — 폰(좁은 화면)이면 세로로 쌓는다 */
+function measure(){
+  var r = root.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  root.style.setProperty('--w', r.width + 'px');
+  root.style.setProperty('--h', r.height + 'px');
+  root.classList.toggle('is-narrow', r.width < 620 || (r.width < 760 && r.width < r.height * 1.15));
+}
+if (window.ResizeObserver) new ResizeObserver(measure).observe(root);
+else addEventListener('resize', measure);
+
+measure();
+openPP();
+})(0);
+</script>
+</div>
+</body></html>
