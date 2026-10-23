@@ -181,10 +181,17 @@
 .rpp .pp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* 폰 — 세로로 나란히 */
-.rpp.is-narrow .pp{--pp-h: min(calc(var(--w) * .8 * 1.408), calc(var(--h) * .72));
-  padding-top:clamp(56px, calc(var(--h) * .1), 90px)}
-.rpp.is-narrow .pp-row{flex-direction:column;align-items:center;gap:clamp(34px, calc(var(--h) * .06), 56px)}
-.rpp.is-narrow .pp-hint{margin-top:26px}
+/* 폰에서는 모든 크기를 블록 너비(--w)에 맞춘다 — 그래서 전체 높이가 늘 너비의 일정 배수가 되고,
+   luvlog 쪽 액자를 그 비율(aspect-ratio)로 주면 안쪽 스크롤 없이 딱 맞는다 */
+.rpp.is-narrow .pp{--pp-h: calc(var(--w) * .8 * 1.408);
+  padding:calc(var(--w) * .12) calc(var(--w) * .05) calc(var(--w) * .08);overflow:hidden}
+.rpp.is-narrow .pp-row{flex-direction:column;align-items:center;gap:calc(var(--w) * .1)}
+.rpp.is-narrow .pp-meta{margin-top:calc(var(--w) * .05);gap:calc(var(--w) * .026);font-size:calc(var(--w) * .026)}
+.rpp.is-narrow .pp-copy{padding:calc(var(--w) * .023) calc(var(--w) * .036);gap:calc(var(--w) * .036);
+  font-size:calc(var(--w) * .026);line-height:1.2;border-width:calc(var(--w) * .0026)}
+.rpp.is-narrow .pp-hint{margin-top:calc(var(--w) * .066);font-size:calc(var(--w) * .026);line-height:1.9}
+.rpp.is-narrow .pp-hint span{display:block;white-space:nowrap}   /* 줄 수를 고정 — 기기마다 줄바꿈이 달라지지 않게 */
+.rpp.is-narrow .pp-hint br{display:none}
 
 @media (prefers-reduced-motion:reduce){
   .rpp *{animation-duration:.01ms !important;transition-duration:.01ms !important}
@@ -204,7 +211,7 @@
       <span class="pp-sr" aria-live="polite"></span>
     </div>
   </div>
-  <p class="pp-hint"><b>아래 장</b>을 누르면 다음 장으로, <b>위 장</b>을 누르면 앞 장으로 넘어가요<br>click the lower page to turn · the upper page to go back</p>
+  <p class="pp-hint"><span><b>아래 장</b>을 누르면 다음 장으로,</span> <span><b>위 장</b>을 누르면 앞 장으로 넘어가요</span><br><span>click the lower page to turn ·</span> <span>the upper page to go back</span></p>
 </div>
 
 <script>
@@ -457,7 +464,7 @@ function measure(){
   if (!r.width || !r.height) return;
   root.style.setProperty('--w', r.width + 'px');
   root.style.setProperty('--h', r.height + 'px');
-  root.classList.toggle('is-narrow', r.width < 620 || (r.width < 760 && r.width < r.height * 1.15));
+  root.classList.toggle('is-narrow', r.width < 620);         /* 폭으로만 — luvlog 쪽 액자 규칙과 같은 기준 */
 }
 if (window.ResizeObserver) new ResizeObserver(measure).observe(root);
 else addEventListener('resize', measure);
